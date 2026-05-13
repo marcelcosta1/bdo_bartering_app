@@ -9,33 +9,33 @@ st.title("🏴‍☠️ Black Desert Online - Bartering Dashboard")
 st.markdown("Track your sea trade goods, check low-stock items, and analyze inventory levels.")
 
 # --- DATA INGESTION ---
-# For demonstration purposes, we're creating a mock DataFrame.
-# You can replace this logic by loading your sheet using gspread or reading a CSV export.
 @st.cache_data
-def load_data():
-    # Example structure matching the "Full Barter Stock" structure
-    data = {
-        "Item Name": [
-            "Level 1 Fertile Soil", "Level 1 Unidentified Ancient Mural", 
-            "Level 2 Monster Tentacle", "Level 2 Filtered Drinking Water",
-            "Level 3 Ancient Orders", "Level 3 Lopters Fishnet",
-            "Level 4 Green Salt Lump", "Level 4 Panacea",
-            "Level 5 Statue's Tear", "Level 5 Mysterious Rock",
-            "Level 1 Stained Seagull Figurine", "Level 5 102 Year Old Golden Herb"
-        ],
-        "Level": [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 1, 5],
-        "Quantity": [12, 3, 5, 2, 8, 1, 14, 4, 0, 7, 2, 6]
-    }
-    return pd.DataFrame(data)
+def load_data(uploaded_file):
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
+        # Optionally, rename columns if needed to match expected names
+        # df = df.rename(columns={"YourColumn1": "Item Name", ...})
+        return df
+    else:
+        return pd.DataFrame(columns=["Item Name", "Level", "Quantity"])
 
-df = load_data()
+st.sidebar.header("Navigation & Filters")
+uploaded_file = st.sidebar.file_uploader(
+    "Upload your Barter Stock Excel file (.xlsx)", 
+    type=["xlsx"]
+)
+
+df = load_data(uploaded_file)
+
+if df.empty:
+    st.warning("Please upload a valid Excel file with columns: Item Name, Level, Quantity.")
+    st.stop()
 
 # --- SIDEBAR FILTERS ---
-st.sidebar.header("Navigation & Filters")
 selected_level = st.sidebar.multiselect(
     "Filter by Item Level",
-    options=[1, 2, 3, 4, 5],
-    default=[1, 2, 3, 4, 5]
+    options=sorted(df["Level"].dropna().unique()),
+    default=sorted(df["Level"].dropna().unique())
 )
 
 # Apply filter
@@ -61,8 +61,6 @@ col_left, col_right = st.columns([1, 1])
 with col_left:
     st.markdown("### 🚨 Items to Restock (Quantity < 5)")
     needs_restock = filtered_df[filtered_df["Quantity"] < 5].sort_values(by="Quantity")
-    
-    # Display as a styled data frame
     st.dataframe(
         needs_restock, 
         column_config={
@@ -76,7 +74,6 @@ with col_left:
 with col_right:
     st.markdown("### 🔍 Search Inventory")
     search_term = st.text_input("Enter item name to check:")
-    
     if search_term:
         search_results = filtered_df[filtered_df["Item Name"].str.contains(search_term, case=False, na=False)]
         st.dataframe(search_results, use_container_width=True)
@@ -88,7 +85,6 @@ st.markdown("---")
 # --- VISUALIZATION / GRAPHS ---
 st.markdown("### 📈 Inventory Quantities by Level")
 
-# Group data by level to show totals
 level_summary = filtered_df.groupby("Level")["Quantity"].sum().reset_index()
 
 st.bar_chart(

@@ -67,7 +67,6 @@ if search_term:
             search_results, 
             column_config={
                 "Item Name": "Item",
-                "Level": "Tier",
                 "Quantity": "Stock"
             },
             use_container_width=True,
@@ -123,7 +122,6 @@ if not filtered_df.empty:
         needs_restock, 
         column_config={
             "Item Name": "Item",
-            "Level": "Tier",
             "Quantity": "Stock"
         },
         use_container_width=True,
